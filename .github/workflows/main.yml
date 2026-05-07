@@ -7,17 +7,14 @@ jobs:
     steps:
       - name: Pull and Save Images
         run: |
-          # 修正了版本号为 0.24.0
-          docker pull prom/blackbox-exporter:0.24.0
-          docker pull prom/prometheus:v3.11.2
-          docker pull prom/alertmanager:v0.32.0
-          docker pull grafana/grafana:12.4.2
+          # 拉取四个监控组件的最新版
+          docker pull prom/blackbox-exporter
           
-          # 重新打包（注意这里也要同步修改文件名，方便区分）
-          docker save -o monitor_images_v2.tar prom/blackbox-exporter:0.24.0 prom/prometheus:v3.11.2 prom/alertmanager:v0.32.0 grafana/grafana:12.4.2
+          # 打包保存（文件名加上latest标识）
+          docker save -o monitor_images_latest.tar prom/blackbox-exporter
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: monitor_images_v2
-          path: monitor_images_v2.tar
+          name: monitor_images_latest
+          path: monitor_images_latest.tar
