@@ -7,14 +7,14 @@ jobs:
     steps:
       - name: Pull and Save Images
         run: |
-          # 拉取指定版本的监控组件
-          docker pull prom/blackbox-exporter:v0.29.0
+          # 拉取四个监控组件的最新版
+          docker pull prom/blackbox-exporter
           
-          # 打包保存（文件名添加版本标识）
-          docker save -o monitor_images_v0.29.0.tar prom/blackbox-exporter:v0.29.0
+          # 打包保存（文件名加上latest标识）
+          docker save -o monitor_images_latest.tar prom/blackbox-exporter
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: monitor_images_v0.29.0
-          path: monitor_images_v0.29.0.tar
+          name: monitor_images_latest
+          path: monitor_images_latest.tar
