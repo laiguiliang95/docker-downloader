@@ -1,4 +1,4 @@
-name: Download Docker Images (Stable)
+name: Download A2W Image (No Mirror)
 
 on:
   workflow_dispatch:
@@ -7,14 +7,14 @@ jobs:
   download:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: write  # 必须开启，用于推送镜像到 GHCR
+      packages: write
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 登录到 GitHub Container Registry (使用内置 Token，无需密码)
+      # 1. 登录 GitHub 官方镜像仓库 (无需密码，使用内置 Token)
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -22,45 +22,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 拉取 Docker Hub 镜像，并重新打标签为 GHCR 格式
-      - name: Pull and Retag Images
+      # 2. 直接从 Docker Hub 拉取 (GitHub 海外节点直连)
+      - name: Pull original image
         run: |
-          # 从 Docker Hub 拉取
-          docker pull prom/prometheus-webhook-wechat:latest
           docker pull rea1shane/a2w:latest
 
-          # 重新打标签，指向 GHCR
-          docker tag prom/prometheus-webhook-wechat:latest ghcr.io/${{ github.repository_owner }}/prometheus-webhook-wechat:latest
+      # 3. 重新打标签，指向 GitHub 仓库
+      - name: Tag for GHCR
+        run: |
           docker tag rea1shane/a2w:latest ghcr.io/${{ github.repository_owner }}/a2w:latest
 
-      # 将镜像推送到 GHCR (这一步确保镜像被缓存到 GitHub 内部)
+      # 4. 推送到 GitHub (这一步是为了缓存，确保后续下载稳定)
       - name: Push to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/prometheus-webhook-wechat:latest
           docker push ghcr.io/${{ github.repository_owner }}/a2w:latest
 
-      # 从 GHCR 拉取并打包 (此时速度极快且无限制)
-      - name: Save images into one tar file
+      # 5. 从 GitHub 拉取并打包 (此时完全不经过 Docker Hub)
+      - name: Save image
         run: |
-          docker pull ghcr.io/${{ github.repository_owner }}/prometheus-webhook-wechat:latest
           docker pull ghcr.io/${{ github.repository_owner }}/a2w:latest
+          docker save ghcr.io/${{ github.repository_owner }}/a2w:latest -o a2w-image.tar
 
-          docker save \
-            ghcr.io/${{ github.repository_owner }}/prometheus-webhook-wechat:latest \
-            ghcr.io/${{ github.repository_owner }}/a2w:latest \
-            -o docker-images-all.tar
-
-      # 创建 Release 并上传文件
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      # 6. 上传文件
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: docker-images-${{ github.run_number }}
-          name: Docker Images Package ${{ github.run_number }}
-          body: |
-            ## 📦 离线镜像包 (已绕过 Docker Hub 限流)
-
-            ### 包含的镜像：
-            - prom/prometheus-webhook-wechat
-            - rea1shane/a2w
-
-            ### 🚀 使用方法：
+          name: a2w-docker-image
+          path: a2w-image.tar
