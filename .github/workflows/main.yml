@@ -16,13 +16,13 @@ jobs:
       # 不需要配置任何镜像加速器，也不需要登录 Docker Hub
       - name: Pull images directly from Docker Hub
         run: |
-          docker pull magicyg/prometheus-webhook-wechat:latest
+          docker pull prom/prometheus-webhook-wechat:latest
           docker pull rea1shane/a2w:latest
 
       - name: Save images into one tar file
         run: |
           docker save \
-            magicyg/prometheus-webhook-wechat:latest \
+            prom/prometheus-webhook-wechat:latest \
             rea1shane/a2w:latest \
             -o docker-images-all.tar
 
