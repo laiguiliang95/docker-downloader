@@ -1,51 +1,37 @@
-name: Download Docker Images (Direct & Stable)
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-on:
-  workflow_dispatch:
+  # 核心步骤：直接拉取 GHCR 上的镜像 (GitHub 自带，无限速)
+  - name: Pull images from GitHub Packages
+    run: |
+      # 直接从 ghcr.io 拉取 (不需要配置任何加速器，也不需要登录 Docker Hub)
+      docker pull ghcr.io/prom/prometheus-webhook-wechat:latest
+      docker pull ghcr.io/rea1shane/a2w:latest
 
-jobs:
-  download:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  # 打包成一个 tar 文件
+  - name: Save images into one tar file
+    run: |
+      docker save \
+        ghcr.io/prom/prometheus-webhook-wechat:latest \
+        ghcr.io/rea1shane/a2w:latest \
+        -o docker-images-all.tar
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # 🌟 核心修改：直接拉取，不使用任何加速前缀
-      # GitHub Actions 的海外节点直连 Docker Hub 是最稳定的
-      - name: Pull images directly
-        run: |
-          echo "正在拉取 prom/prometheus-webhook-wechat..."
-          docker pull prom/prometheus-webhook-wechat:latest
-          
-          echo "正在拉取 rea1shane/a2w..."
-          docker pull rea1shane/a2w:latest
-
-      # 打包镜像
-      - name: Save images into one tar file
-        run: |
-          docker save \
-            prom/prometheus-webhook-wechat:latest \
-            rea1shane/a2w:latest \
-            -o docker-images-all.tar
-
-      # 上传文件
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: docker-images-${{ github.run_number }}
-          name: Docker Images Package ${{ github.run_number }}
-          body: |
-            ## 离线镜像包 (Direct Pull)
-            
-            - prom/prometheus-webhook-wechat:latest
-            - rea1shane/a2w:latest
-            
-            **使用方法:**
-            bash
-            docker load < docker-images-all.tar
-            
-          files: |
-            docker-images-all.tar
+  # 上传到 Releases 供下载
+  - name: Create Release
+    uses: softprops/action-gh-release@v2
+    with:
+      tag_name: docker-images-${{ github.run_number }}
+      name: Docker Images Package
+      body: |
+        ## 离线镜像包 (已绕过 Docker Hub 限流)
+        
+        * prom/prometheus-webhook-wechat
+        * rea1shane/a2w
+        
+        **使用方法:**
+        bash
+        docker load < docker-images-all.tar
+        
+      files: |
+        docker-images-all.tar
