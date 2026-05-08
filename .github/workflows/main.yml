@@ -1,39 +1,25 @@
 name: Download Docker Images
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
 
 jobs:
-  download-images:
+  download:
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure Docker Mirror (DaoCloud)
+      # 不需要配置任何镜像加速器，也不需要登录 Docker Hub
+      - name: Pull images directly from Docker Hub
         run: |
-          sudo mkdir -p /etc/docker
-          echo '{
-            "registry-mirrors": [
-              "https://docker.m.daocloud.io"
-            ]
-          }' | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
+          docker pull magicyg/prometheus-webhook-wechat:latest
+          docker pull rea1shane/a2w:latest
 
-      - name: Pull images
-        run: |
-          # 使用 DaoCloud 加速拉取
-          docker pull docker.m.daocloud.io/magicyg/prometheus-webhook-wechat:latest
-          docker pull docker.m.daocloud.io/rea1shane/a2w:latest
-
-          # 重新打 tag（去掉加速前缀）
-          docker tag docker.m.daocloud.io/magicyg/prometheus-webhook-wechat:latest magicyg/prometheus-webhook-wechat:latest
-          docker tag docker.m.daocloud.io/rea1shane/a2w:latest rea1shane/a2w:latest
-
-      - name: Save all images into one tar file
+      - name: Save images into one tar file
         run: |
           docker save \
             magicyg/prometheus-webhook-wechat:latest \
@@ -46,10 +32,10 @@ jobs:
           tag_name: docker-images-${{ github.run_number }}
           name: Docker Images ${{ github.run_number }}
           body: |
-            ## 📦 合并 Docker 镜像包
+            ## 📦 离线镜像包
 
-            包含以下镜像：
-            - magicyg/prometheus-webhook-wechat:latest
-            - rea1shane/a2w:latest
+            已包含：
+            - prometheus-webhook-wechat
+            - a2w (Alertmanager to WeCom)
 
-            ### 🚀 使用方法
+            ### 使用方法
